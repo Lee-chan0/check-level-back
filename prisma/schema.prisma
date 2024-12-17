@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER // 일반사용자
+  ADMIN // 관리자
+}
+
+model User {
+  userId    Int      @id @default(autoincrement()) @map("userId")
+  email     String   @unique @map("email")
+  password  String   @map("password")
+  role      Role     @default(USER)
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+
+  posts    Post[]
+  comments Comment[]
+
+  @@map("User")
+}
+
+model Post {
+  postId      Int      @id @default(autoincrement()) @map("postId")
+  postImg     String?  @map("postImg")
+  postTitle   String   @map("postTitle")
+  postContent String   @map("postContent")
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+
+  userId   Int       @map("userId")
+  user     User      @relation(fields: [userId], references: [userId])
+  comments Comment[]
+
+  @@map("Post")
+}
+
+model Comment {
+  commentId      Int      @id @default(autoincrement()) @map("commentId")
+  commentContent String   @map("commentContent")
+  createdAt      DateTime @default(now()) @map("createdAt")
+  updatedAt      DateTime @updatedAt @map("updatedAt")
+
+  userId Int
+  user   User @relation(fields: [userId], references: [userId])
+
+  postId Int
+  post   Post @relation(fields: [postId], references: [postId])
+
+  @@map("Comment")
+}
