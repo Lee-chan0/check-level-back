@@ -11,7 +11,7 @@ const userRouter = express();
 
 userRouter.post('/signup', async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password, nickname, role } = req.body;
     const findUser = await prisma.user.findFirst({
       where: {
         email: email,
@@ -28,6 +28,7 @@ userRouter.post('/signup', async (req, res) => {
       data: {
         email: email,
         password: encryptionPassword,
+        nickname: nickname,
         role: role
       }
     })
@@ -59,11 +60,11 @@ userRouter.post('/signin', async (req, res) => {
 
     const jwtToken = jwt.sign({ userId: findUser.userId }, SECRET_KEY, { expiresIn: '1h' });
 
-    return res.status(200).json({ message: `환영합니다. ${findUser.email}님`, token: `Bearer ${jwtToken}` });
+    return res.status(200).json({ message: `환영합니다. ${findUser.nickname}님`, token: `Bearer ${jwtToken}` });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
   }
-})
+});
 
 export default userRouter;

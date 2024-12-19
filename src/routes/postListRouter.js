@@ -6,9 +6,17 @@ const postListRouter = express();
 
 postListRouter.get('/post', async (req, res) => {
   try {
-    const findPostAll = await prisma.post.findMany();
+    const findPostAll = await prisma.post.findMany({
+      include: {
+        user: {
+          select: {
+            nickname: true
+          }
+        }
+      }
+    });
 
-    return res.status(200).json({ data: findPostAll });
+    return res.status(200).json({ postsData: findPostAll });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
@@ -18,10 +26,19 @@ postListRouter.get('/post', async (req, res) => {
 postListRouter.get('/post/:postId', async (req, res) => {
   try {
     const { postId } = req.params;
-    const findPost = await prisma.post.findFirst({ where: { postId: +postId } })
-    if (!findPost) return res.status(401).json({ message: "게시글을 찾을 수 없습니다." });
+    const findPost = await prisma.post.findFirst({
+      where: { postId: +postId },
+      include: {
+        user: {
+          select: {
+            nickname: true
+          }
+        }
+      }
+    })
+    if (!findPost) return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
 
-    return res.status(200).json({ data: findPost });
+    return res.status(200).json({ postData: findPost });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
@@ -40,7 +57,7 @@ postListRouter.post('/post', authMiddleware, async (req, res) => {
         userId: userId,
       }
     });
-    return res.status(201).json({ message: "게시글이 등록 되었습니다.", data: createPost });
+    return res.status(201).json({ message: "게시글이 등록 되었습니다.", postData: createPost });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
@@ -53,7 +70,7 @@ postListRouter.patch('/post/:postId', authMiddleware, async (req, res) => {
     const { postId } = req.params;
     const { postTitle, postContent } = req.body;
 
-    const findPost = await prisma.post.findFirst({ where: { postId: +postId, userId: userId } });
+    const findPost = await prisma.post.findFirst({ where: { postId: +postId } });
     if (findPost.userId !== userId) return res.status(403).json({ message: "게시글을 수정할 수 있는 권한이 없습니다." });
 
     const editPost = await prisma.post.update({
@@ -65,7 +82,7 @@ postListRouter.patch('/post/:postId', authMiddleware, async (req, res) => {
         postContent: postContent
       }
     })
-    return res.status(201).json({ message: "게시글 수정 완료", data: editPost });
+    return res.status(201).json({ message: "게시글 수정 완료", postData: editPost });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
@@ -77,10 +94,11 @@ postListRouter.delete('/post/:postId', authMiddleware, async (req, res) => {
     const { userId } = req.user;
     const { postId } = req.params;
 
-    const findPost = await prisma.post.findFirst({ where: { userId: userId, postId: +postId } });
-    if (!findPost) return res.status(401).json({ message: "해당하는 게시글이 없습니다." });
+    const findPost = await prisma.post.findFirst({ where: { postId: +postId } });
+    if (!findPost) return res.status(404).json({ message: "해당하는 게시글이 없습니다." });
+    if (findPost.userId !== userId) return res.status(403).json({ message: "삭제할 수 있는 권한이 없습니다." });
 
-    await prisma.post.delete({ where: { userId: userId, postId: +postId } });
+    await prisma.post.delete({ where: { postId: +postId } });
 
     return res.status(200).json({ message: "게시글이 삭제되었습니다." });
   } catch (e) {
