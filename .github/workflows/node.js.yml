@@ -47,7 +47,7 @@ jobs:
 # run: 안에 있는건 zip 파일로, CI.zip이라는 이름으로, 다음에 올 파일들을 압축하겠다. 라는뜻
 # ./src/* 이건, src폴더 내부에 있는 모든 디렉토리와 파일들을 한꺼번에 명시할때 저렇게 씀
     - name: zip file
-      run: zip -r CI.zip ./src/* ./prisma/* ./appspec.yml ./package.json ./package-lock.json ./.env
+      run: zip -r CI.zip ./src/* ./prisma/* ./scripts/* ./appspec.yml ./package.json ./package-lock.json ./.env
 #######################################################
     - name: AWS configure credentials
       uses: aws-actions/configure-aws-credentials@v1
