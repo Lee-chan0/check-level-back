@@ -14,6 +14,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "start": "pm2 start src/app.js",
     "dev": "nodemon src/app.js"
   },
   "keywords": [],
