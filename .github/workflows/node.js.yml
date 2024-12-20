@@ -1,11 +1,10 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
 name: Node.js CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" ] 
   pull_request:
     branches: [ "main" ]
 
@@ -16,16 +15,59 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [18.x]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+    - run: npm install
+
+    - name: Check npm -v
+      run: npm -v
+#######################################################
+    - name: create env file  # .env파일 만들기 위한 로직
+      working-directory: ./
+      run: |
+        pwd
+        touch .env
+        echo DATABASE_URL=${{ secrets.DATABASE_URL }} >> .env
+        echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
+        cat .env
+   #######################################################
+    - name: build server file
+      working-directory: ./
+      run: |
+        npm run build
+
+#######################################################
+# run: 안에 있는건 zip 파일로, CI.zip이라는 이름으로, 다음에 올 파일들을 압축하겠다. 라는뜻
+# ./src/* 이건, src폴더 내부에 있는 모든 디렉토리와 파일들을 한꺼번에 명시할때 저렇게 씀
+    - name: zip file
+      run: zip -r CI.zip ./src/* ./prisma/* ./appspec.yml ./package.json ./package-lock.json ./.env
+#######################################################
+    - name: AWS configure credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} 
+        aws-secret-access-key: ${{ secrets.AWS_PRIVATE_ACCESS_KEY }}
+        aws-region: ap-northeast-2
+#######################################################
+# run:에 있는 my-project-bucket에다가 아까 내가 만든 bucket이름/CI.zip폴더를 s3어디 폴더에 저장할건지
+    - name: upload to S3
+      run: aws s3 cp --region ap-northeast-2 ./CI.zip s3://my-check-level-s3-bck/deploy/
+
+#######################################################
+    - name: deploy with AWS codeDeploy
+      run: aws deploy create-deployment
+      # 아까 만든 애플리케이션 이름
+        --application-name codeDeploy-CheckLv
+      # 아까 기억해두라 했던거
+        --deployment-config-name CodeDeployDefault.OneAtATime
+      # 애플리케이션안의 그룹이름
+        --deployment-group-name check-lv-deployment-group
+      # s3-location bucket=<s3버킷이름>,bundleType=zip(zip타입이라고 하는것)
+        --s3-location bucket=my-check-level-s3-bck,bundleType=zip,key=deploy/CI.zip
