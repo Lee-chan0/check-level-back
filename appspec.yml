@@ -1,0 +1,35 @@
+# appspec.yml 파일
+
+version: 0.0
+os: linux
+files:
+  - source: /
+		#EC2에 배포할 폴더 설정
+		#/home/ubuntu/Repository_folder
+    destination: /home/ubuntu/chk-lv-back
+		# 덮어쓰기 설정
+    overwrite: yes
+
+# 파일 존재 시 행동 : 덮어쓰기
+file_exists_behavior: OVERWRITE
+
+# 이거는 약간 증명하는 내용인것 같다.
+permissions:
+  - object: /home/ubuntu
+    pattern: '**'
+    owner: ubuntu
+    group: ubuntu
+
+# hooks : EC2에 배포하기 전, 배포한 다음의 행동을 정의해준다.
+hooks:
+	# 배포하기 전 행동
+  BeforeInstall:
+			# (배포하기 전 행동 정의)를 한 파일의 위치
+    - location: scripts/before_deploy.sh
+      runas: ubuntu
+	# 배포한 후 행동
+  AfterInstall:
+			# (배포한 후 행동 정의)를 한 파일의 위치
+    - location: scripts/after_deploy.sh
+      timeout: 300
+      runas: ubuntu
