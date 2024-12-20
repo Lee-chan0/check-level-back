@@ -3,13 +3,15 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prismaClient.js';
 import dotenv from 'dotenv';
+import multer from 'multer';
 
 dotenv.config();
 
+const upload = multer();
 
 const userRouter = express();
 
-userRouter.post('/signup', async (req, res) => {
+userRouter.post('/signup', upload.none(), async (req, res) => {
   try {
     const { email, password, nickname, role } = req.body;
     const findUser = await prisma.user.findFirst({
