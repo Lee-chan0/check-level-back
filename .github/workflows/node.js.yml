@@ -62,12 +62,9 @@ jobs:
 
 #######################################################
     - name: deploy with AWS codeDeploy
-      run: aws deploy create-deployment
-      # 아까 만든 애플리케이션 이름
-        --application-name codeDeploy-CheckLv
-      # 아까 기억해두라 했던거
-        --deployment-config-name CodeDeployDefault.OneAtATime
-      # 애플리케이션안의 그룹이름
-        --deployment-group-name check-lv-deployment-group
-      # s3-location bucket=<s3버킷이름>,bundleType=zip(zip타입이라고 하는것)
-        --s3-location bucket=my-check-level-s3-bck,bundleType=zip,key=deploy/CI.zip
+      run: |
+        aws deploy create-deployment \
+          --application-name codeDeploy-CheckLv \
+          --deployment-config-name CodeDeployDefault.OneAtATime \
+          --deployment-group-name check-lv-deployment-group \
+          --s3-location bucket=my-check-level-s3-bck,bundleType=zip,key=deploy/CI.zip
