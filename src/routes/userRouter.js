@@ -44,7 +44,7 @@ userRouter.post('/signup', upload.none(), async (req, res) => {
 });
 
 
-userRouter.post('/signin', async (req, res) => {
+userRouter.post('/signin', upload.none(), async (req, res) => {
   try {
     const { email, password } = req.body;
     const SECRET_KEY = process.env.SECRET_KEY;
