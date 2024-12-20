@@ -1,8 +1,11 @@
 import express from 'express';
 import prisma from '../utils/prismaClient.js';
+import multer from 'multer';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const postListRouter = express();
+
+const upload = multer();
 
 postListRouter.get('/post', async (req, res) => {
   try {
@@ -45,7 +48,7 @@ postListRouter.get('/post/:postId', async (req, res) => {
   }
 })
 
-postListRouter.post('/post', authMiddleware, async (req, res) => {
+postListRouter.post('/post', authMiddleware, upload.none(), async (req, res) => {
   try {
     const { postTitle, postContent } = req.body;
     const { userId } = req.user;
