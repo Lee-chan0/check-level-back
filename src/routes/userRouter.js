@@ -60,7 +60,7 @@ userRouter.post('/signin', upload.none(), async (req, res) => {
     const result = await bcrypt.compare(password, findUser.password);
     if (!result) return res.status(401).json({ message: "비밀번호를 확인하세요." });
 
-    const jwtToken = jwt.sign({ userId: findUser.userId }, SECRET_KEY, { expiresIn: '1h' });
+    const jwtToken = jwt.sign({ userId: findUser.userId }, SECRET_KEY, { expiresIn: '10s' });
 
     return res.status(200).json({ message: `환영합니다. ${findUser.nickname}님`, token: `Bearer ${jwtToken}` });
   } catch (e) {
@@ -68,5 +68,29 @@ userRouter.post('/signin', upload.none(), async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 });
+
+
+userRouter.post('/auth/expired', async (req, res) => {
+  const { authorization } = req.headers;
+  try {
+    if (!authorization) return res.status(401).json({ message: "토큰이 존재하지 않습니다." });
+
+    const [tokenType, token] = authorization.split(' ');
+    if (tokenType !== 'Bearer') return res.status(401).json({ message: "토큰 타입이 일치하지 않습니다." });
+
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+    return res.status(201).json({ message: "유효한 토큰 입니다.", decoded: decoded });
+
+  } catch (e) {
+    console.error(e);
+    if (e.name === 'TokenExpiredError') {
+      return res.status(403).json({ message: "유효하지 않은 토큰입니다. 다시 로그인해 주세요." });
+    } else if (e.name === 'JsonWebTokenError') {
+      return res.status(402).json({ message: "이상감지. 자동으로 로그아웃 됩니다." });
+    }
+    return res.status(500).json('Server Error');
+  }
+})
 
 export default userRouter;
