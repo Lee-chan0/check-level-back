@@ -60,7 +60,7 @@ userRouter.post('/signin', upload.none(), async (req, res) => {
     const result = await bcrypt.compare(password, findUser.password);
     if (!result) return res.status(401).json({ message: "비밀번호를 확인하세요." });
 
-    const jwtToken = jwt.sign({ userId: findUser.userId }, SECRET_KEY, { expiresIn: '10s' });
+    const jwtToken = jwt.sign({ userId: findUser.userId }, SECRET_KEY, { expiresIn: '30s' });
 
     return res.status(200).json({ message: `환영합니다. ${findUser.nickname}님`, token: `Bearer ${jwtToken}` });
   } catch (e) {
