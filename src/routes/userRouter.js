@@ -75,7 +75,11 @@ userRouter.post('/auth/expired', async (req, res) => {
   try {
     if (!authorization) return res.status(401).json({ message: "토큰이 존재하지 않습니다." });
 
+    console.log('authorization', authorization);
+
     const [tokenType, token] = authorization.split(' ');
+    console.log('tokenType', tokenType);
+    console.log('token', token);
     if (tokenType !== 'Bearer') return res.status(401).json({ message: "토큰 타입이 일치하지 않습니다." });
 
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
