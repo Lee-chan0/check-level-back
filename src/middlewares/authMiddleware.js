@@ -26,6 +26,11 @@ export async function authMiddleware(req, res, next) {
     next();
   } catch (e) {
     console.error(e);
-    res.status(500).json({ message: "Server Error" });
+    if (e.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: "비정상적인 접근입니다. 자동으로 로그아웃됩니다." });
+    }
+    else if (e.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: "토큰이 만료되었습니다. 다시 로그인 해주세요." });
+    }
   }
 }

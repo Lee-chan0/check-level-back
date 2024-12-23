@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../utils/prismaClient.js';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 dotenv.config();
 
@@ -62,12 +63,29 @@ userRouter.post('/signin', upload.none(), async (req, res) => {
 
     const jwtToken = jwt.sign({ userId: findUser.userId }, SECRET_KEY, { expiresIn: '30s' });
 
-    return res.status(200).json({ message: `환영합니다. ${findUser.nickname}님`, token: `Bearer ${jwtToken}` });
+    return res.status(200).json({ message: `환영합니다. ${findUser.nickname}님`, token: `${jwtToken}` });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
   }
 });
+
+userRouter.post('/auth/checktoken', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.user;
+
+    const findUser = prisma.user.findUnique({
+      where: {
+        userId: userId
+      }
+    });
+
+    return res.status(201).json({ findUser })
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server Error" });
+  }
+})
 
 
 
