@@ -17,7 +17,7 @@ app.use('/api', [postListRouter, userRouter, commentRouter]);
 
 
 app.get('/', (req, res) => {
-  res.send('Welcome to Express');
+  res.send('Welcome to Express!');
 });
 
 app.listen(PORT, () => {
