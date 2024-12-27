@@ -85,6 +85,38 @@ userRouter.post('/auth/checktoken', authMiddleware, async (req, res) => {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
   }
+});
+
+userRouter.get('/userinfo', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.user;
+
+    const findUser = prisma.user.findUnique({
+      where: {
+        userId: userId
+      },
+      select: {
+        nickname: true
+      }
+    });
+
+    if (!findUser) return res.status(401).json({ message: "해당하는 유저가 없습니다." });
+
+    const userPosts = prisma.post.findMany({
+      where: {
+        userId: userId
+      },
+      select: {
+        postId: true,
+        postTitle: true,
+      }
+    });
+
+    return res.status(201).json({ userData: findUser, userPosts: userPosts });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server Error" });
+  }
 })
 
 
