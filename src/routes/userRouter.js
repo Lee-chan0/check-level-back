@@ -91,7 +91,7 @@ userRouter.get('/userinfo', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.user;
 
-    const findUser = prisma.user.findUnique({
+    const findUser = await prisma.user.findUnique({
       where: {
         userId: userId
       },
@@ -102,7 +102,7 @@ userRouter.get('/userinfo', authMiddleware, async (req, res) => {
 
     if (!findUser) return res.status(401).json({ message: "해당하는 유저가 없습니다." });
 
-    const userPosts = prisma.post.findMany({
+    const userPosts = await prisma.post.findMany({
       where: {
         userId: userId
       },
