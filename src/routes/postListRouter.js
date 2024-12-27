@@ -9,7 +9,7 @@ postListRouter.get('/post', async (req, res) => {
   try {
     const findPostAll = await prisma.post.findMany({
       orderBy: {
-        createdAt: 'asc'
+        createdAt: 'desc'
       }
       ,
       include: {
