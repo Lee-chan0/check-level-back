@@ -54,16 +54,7 @@ postListRouter.post('/post', authMiddleware, imageUploader.single('postImg'), as
   try {
     const { postTitle, postContent } = req.body;
     const { userId } = req.user;
-    const filePath = req.file.location;
-    console.log(filePath);
-    if (!filePath) {
-      throw new Error({
-        status: 401,
-        response: {
-          message: "invalid-file-path"
-        }
-      })
-    }
+    const filePath = req?.file.location;
 
     const createPost = await prisma.post.create({
       data: {
