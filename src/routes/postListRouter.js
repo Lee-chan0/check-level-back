@@ -68,6 +68,7 @@ postListRouter.post('/post', authMiddleware, imageUploader.single('postImg'), as
       data: {
         postTitle: postTitle,
         postContent: postContent,
+        postImg: filePath,
         userId: userId,
       }
     });
