@@ -49,7 +49,7 @@ postListRouter.get('/post/:postId', async (req, res) => {
   }
 })
 
-postListRouter.post('/post', authMiddleware, imageUploader.single('image'), async (req, res) => {
+postListRouter.post('/post', authMiddleware, imageUploader.single('postImg'), async (req, res) => {
   try {
     const { postTitle, postContent } = req.body;
     const { userId } = req.user;
