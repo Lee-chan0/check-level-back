@@ -2,6 +2,7 @@ import express from 'express';
 import prisma from '../utils/prismaClient.js';
 import multer from 'multer';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
+import imageUploader from '../middlewares/imageMiddleware.js';
 
 const postListRouter = express();
 
@@ -48,10 +49,20 @@ postListRouter.get('/post/:postId', async (req, res) => {
   }
 })
 
-postListRouter.post('/post', authMiddleware, upload.none(), async (req, res) => {
+postListRouter.post('/post', authMiddleware, upload.none(), imageUploader.single('image'), async (req, res) => {
   try {
     const { postTitle, postContent } = req.body;
     const { userId } = req.user;
+    const filePath = req.file.location;
+    console.log(filePath);
+    if (!filePath) {
+      throw new Error({
+        status: 401,
+        response: {
+          message: "invalid-file-path"
+        }
+      })
+    }
 
     const createPost = await prisma.post.create({
       data: {
