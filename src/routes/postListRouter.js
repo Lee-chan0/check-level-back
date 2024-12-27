@@ -1,16 +1,17 @@
 import express from 'express';
 import prisma from '../utils/prismaClient.js';
-import multer from 'multer';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import imageUploader from '../middlewares/imageMiddleware.js';
 
 const postListRouter = express();
 
-const upload = multer();
-
 postListRouter.get('/post', async (req, res) => {
   try {
     const findPostAll = await prisma.post.findMany({
+      orderBy: {
+        createdAt: 'asc'
+      }
+      ,
       include: {
         user: {
           select: {

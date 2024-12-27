@@ -29,6 +29,7 @@ model User {
 
 model Post {
   postId      Int      @id @default(autoincrement()) @map("postId")
+  order       Int      @default(0) @map("order")
   postImg     String?  @map("postImg")
   postTitle   String   @map("postTitle")
   postContent String   @map("postContent")
