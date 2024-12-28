@@ -73,6 +73,13 @@ commentRouter.patch('/post/:postId/comment/:commentId', authMiddleware, async (r
     where: { commentId: +commentId },
     data: {
       commentContent: commentContent
+    },
+    include: {
+      user: {
+        select: {
+          nickname: true
+        }
+      }
     }
   });
 
