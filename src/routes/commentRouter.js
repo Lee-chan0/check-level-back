@@ -41,6 +41,13 @@ commentRouter.post('/post/:postId/comment', authMiddleware, async (req, res) => 
         userId: userId,
         postId: +postId,
         commentContent: commentContent,
+      },
+      include: {
+        user: {
+          select: {
+            nickname: true
+          }
+        }
       }
     });
 
