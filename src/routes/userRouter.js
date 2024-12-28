@@ -74,7 +74,7 @@ userRouter.post('/auth/checktoken', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.user;
 
-    const findUser = prisma.user.findUnique({
+    const findUser = await prisma.user.findUnique({
       where: {
         userId: userId
       }
