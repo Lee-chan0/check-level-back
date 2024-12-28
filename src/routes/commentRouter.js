@@ -76,7 +76,7 @@ commentRouter.patch('/post/:postId/comment/:commentId', authMiddleware, async (r
     }
   });
 
-  return res.status(201).json({ message: "댓글이 수정되었습니다." });
+  return res.status(201).json({ message: "댓글이 수정되었습니다.", commentData: editComment });
 });
 
 commentRouter.delete('/post/:postId/comment/:commentId', authMiddleware, async (req, res) => {
