@@ -80,7 +80,7 @@ userRouter.post('/auth/checktoken', authMiddleware, async (req, res) => {
       }
     });
 
-    return res.status(201).json({ findUser })
+    return res.status(201).json({ findUser: findUser })
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server Error" });
