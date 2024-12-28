@@ -87,7 +87,7 @@ commentRouter.delete('/post/:postId/comment/:commentId', authMiddleware, async (
   const deleteComment = await prisma.comment.delete({ where: { commentId: +commentId } });
 
   return res.status(201).json({ message: "댓글이 삭제되었습니다." });
-})
+});
 
 
 
