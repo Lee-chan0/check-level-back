@@ -63,6 +63,7 @@ commentRouter.patch('/post/:postId/comment/:commentId', authMiddleware, async (r
   const { postId, commentId } = req.params;
   const { commentContent } = req.body;
 
+
   const findPost = await prisma.post.findUnique({ where: { postId: +postId } });
   if (!findPost) return res.status(401).json({ message: "해당하는 게시물을 찾을 수 없습니다." });
 
