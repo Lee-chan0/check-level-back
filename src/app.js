@@ -1,25 +1,23 @@
 import express from 'express';
-import postListRouter from './routes/postListRouter.js';
-import userRouter from './routes/userRouter.js';
-import commentRouter from './routes/commentRouter.js';
-import morgan from 'morgan';
+import dotenv from 'dotenv';
+import adminRouter from './routes/adminRouter.js';
+import articleRouter from './routes/articleRouter.js';
+import categoryRouter from './routes/categoryRouter.js';
 import cors from 'cors';
-
+dotenv.config();
+const PORT = process.env.PORT;
 
 const app = express();
-const PORT = 3001;
 
 app.use(cors());
-app.use(express.json());
-app.use(morgan('tiny'));
 app.use(express.urlencoded({ extended: true }));
-app.use('/api', [postListRouter, userRouter, commentRouter]);
-
+app.use(express.json());
+app.use('/api', [adminRouter, articleRouter, categoryRouter]);
 
 app.get('/', (req, res) => {
-  res.send('Welcome to Express!');
+  res.send('Hello Express');
 });
 
 app.listen(PORT, () => {
-  console.log('SERVER OPEN');
+  console.log('Server OPEN');
 });

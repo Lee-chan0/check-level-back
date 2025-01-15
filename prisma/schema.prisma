@@ -7,53 +7,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER // 일반사용자
-  ADMIN // 관리자
+model Admin {
+  adminId       Int      @id @default(autoincrement()) @map("userId")
+  adminLoginId  String   @unique @map("adminLoginId")
+  adminPassword String   @map("adminPassword")
+  adminName     String   @unique @map("adminName")
+  createdAt     DateTime @default(now()) @map("createdAt")
+  updatedAt     DateTime @updatedAt @map("updatedAt")
+
+  article Article[]
+
+  @@map("Admin")
 }
 
-model User {
-  userId    Int      @id @default(autoincrement()) @map("userId")
-  nickname  String   @map("nickname")
-  email     String   @unique @map("email")
-  password  String   @map("password")
-  role      Role     @default(USER)
+model Category {
+  categoryId   Int      @id @default(autoincrement()) @map("categoryId")
+  categoryName String   @unique @map("categoryName")
+  createdAt    DateTime @default(now()) @map("createdAt")
+  updatedAt    DateTime @updatedAt @map("updatedAt")
+
+  articles Article[] // 1:n관계
+
+  @@map("Category")
+}
+
+model Article {
+  articleId       Int      @id @default(autoincrement()) @map("articleId")
+  articleTitle    String   @map("articleTitle")
+  articleSubTitle String   @map("articleSubTitle")
+  articleContent  String   @map("articleContent")
+  articleAuthor   String   @map("articleAuthor")
+  createdAt       DateTime @default(now()) @map("createdAt")
+  updatedAt       DateTime @updatedAt @map("updatedAt")
+  categoryId      Int
+  articleTypeId   Int
+  adminId         Int
+
+  images Image[]
+
+  admin       Admin       @relation(fields: [adminId], references: [adminId])
+  category    Category    @relation(fields: [categoryId], references: [categoryId])
+  articleType ArticleType @relation(fields: [articleTypeId], references: [articleTypeId])
+
+  @@map("Article")
+}
+
+model ArticleType {
+  articleTypeId Int      @id @default(autoincrement()) @map("articleTypeId")
+  articleType   String   @map("articleType")
+  createdAt     DateTime @default(now()) @map("createdAt")
+  updatedAt     DateTime @updatedAt @map("updatedAt")
+
+  articles Article[] // 1:n관계
+
+  @@map("ArticleType")
+}
+
+model Image {
+  imageId   Int      @id @default(autoincrement()) @map("imageId")
+  imageUrl  String   @map("imageUrl")
+  altText   String?  @map("altText")
+  position  Int      @map("position")
+  articleId Int
   createdAt DateTime @default(now()) @map("createdAt")
   updatedAt DateTime @updatedAt @map("updatedAt")
 
-  posts    Post[]
-  comments Comment[]
+  article Article @relation(fields: [articleId], references: [articleId])
 
-  @@map("User")
-}
-
-model Post {
-  postId      Int      @id @default(autoincrement()) @map("postId")
-  order       Int      @default(0) @map("order")
-  postImg     String?  @map("postImg")
-  postTitle   String   @map("postTitle")
-  postContent String   @map("postContent")
-  createdAt   DateTime @default(now()) @map("createdAt")
-  updatedAt   DateTime @updatedAt @map("updatedAt")
-
-  userId   Int       @map("userId")
-  user     User      @relation(fields: [userId], references: [userId])
-  comments Comment[]
-
-  @@map("Post")
-}
-
-model Comment {
-  commentId      Int      @id @default(autoincrement()) @map("commentId")
-  commentContent String   @map("commentContent")
-  createdAt      DateTime @default(now()) @map("createdAt")
-  updatedAt      DateTime @updatedAt @map("updatedAt")
-
-  userId Int
-  user   User @relation(fields: [userId], references: [userId])
-
-  postId Int
-  post   Post @relation(fields: [postId], references: [postId])
-
-  @@map("Comment")
+  @@map("Image")
 }
