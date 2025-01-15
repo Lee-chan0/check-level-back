@@ -20,7 +20,7 @@ adminRouter.post('/signup', upload.none(), async (req, res) => {
 
     const existAdmin = await prisma.admin.findUnique({
       where: { adminLoginId: adminLoginId }
-    });
+    })
 
     if (existAdmin) return res.status(401).json({ message: "중복된 ID입니다." });
 
