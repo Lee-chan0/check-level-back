@@ -3,76 +3,49 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
-model Admin {
-  adminId       Int      @id @default(autoincrement()) @map("userId")
-  adminLoginId  String   @unique @map("adminLoginId")
-  adminPassword String   @map("adminPassword")
-  adminName     String   @unique @map("adminName")
-  createdAt     DateTime @default(now()) @map("createdAt")
-  updatedAt     DateTime @updatedAt @map("updatedAt")
+model Users {
+  userId           Int      @id @default(autoincrement()) @map("userId")
+  loginId          String   @unique @map("loginId")
+  password         String   @map("password")
+  userNamePosition String   @map("userNamePosition")
+  createdAt        DateTime @default(now()) @map("createdAt")
+  updatedAt        DateTime @updatedAt @map("updatedAt")
 
-  article Article[]
+  article Articles[]
 
-  @@map("Admin")
+  @@map("Users")
 }
 
-model Category {
+model Categories {
   categoryId   Int      @id @default(autoincrement()) @map("categoryId")
-  categoryName String   @unique @map("categoryName")
+  categoryName String   @map("categoryName")
   createdAt    DateTime @default(now()) @map("createdAt")
   updatedAt    DateTime @updatedAt @map("updatedAt")
 
-  articles Article[] // 1:n관계
+  article Articles[]
 
-  @@map("Category")
+  @@map("Categories")
 }
 
-model Article {
-  articleId       Int      @id @default(autoincrement()) @map("articleId")
-  articleTitle    String   @map("articleTitle")
-  articleSubTitle String   @map("articleSubTitle")
-  articleContent  String   @map("articleContent")
-  articleAuthor   String   @map("articleAuthor")
-  createdAt       DateTime @default(now()) @map("createdAt")
-  updatedAt       DateTime @updatedAt @map("updatedAt")
-  categoryId      Int
-  articleTypeId   Int
-  adminId         Int
+model Articles {
+  articleId        Int      @id @default(autoincrement()) @map("articleId")
+  articleType      String   @map("articleType")
+  articleTitle     String   @map("articleTitle")
+  articleSubTitle  String   @map("articleSubTitle")
+  articleContent   String   @map("articleContent")
+  articleImageUrls String   @map("articleImageUrls")
+  createdAt        DateTime @default(now()) @map("createdAt")
+  updatedAt        DateTime @updatedAt @map("updatedAt")
 
-  images Image[]
+  UserId Int   @map("UserId")
+  User   Users @relation(fields: [UserId], references: [userId])
 
-  admin       Admin       @relation(fields: [adminId], references: [adminId])
-  category    Category    @relation(fields: [categoryId], references: [categoryId])
-  articleType ArticleType @relation(fields: [articleTypeId], references: [articleTypeId])
+  CategoryId Int        @map("CategoryId")
+  Category   Categories @relation(fields: [CategoryId], references: [categoryId])
 
-  @@map("Article")
-}
-
-model ArticleType {
-  articleTypeId Int      @id @default(autoincrement()) @map("articleTypeId")
-  articleType   String   @map("articleType")
-  createdAt     DateTime @default(now()) @map("createdAt")
-  updatedAt     DateTime @updatedAt @map("updatedAt")
-
-  articles Article[] // 1:n관계
-
-  @@map("ArticleType")
-}
-
-model Image {
-  imageId   Int      @id @default(autoincrement()) @map("imageId")
-  imageUrl  String   @map("imageUrl")
-  altText   String?  @map("altText")
-  position  Int      @map("position")
-  articleId Int
-  createdAt DateTime @default(now()) @map("createdAt")
-  updatedAt DateTime @updatedAt @map("updatedAt")
-
-  article Article @relation(fields: [articleId], references: [articleId])
-
-  @@map("Image")
+  @@map("Articles")
 }
