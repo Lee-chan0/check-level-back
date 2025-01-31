@@ -11,14 +11,34 @@ const articleRouter = express.Router();
 
 articleRouter.get('/articles', async (req, res) => {
   try {
-    const findAllArticle = await prisma.articles.findMany();
-
+    console.log(req.ip);
+    const findAllArticle = await prisma.articles.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        User: {
+          select: {
+            userId: true,
+            userNamePosition: true
+          }
+        },
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true,
+          }
+        }
+      }
+    });
     return res.status(201).json({ articles: findAllArticle });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "server error" });
   }
 })
+
+
 
 articleRouter.get("/article/:articleId", async (req, res) => {
   try {
@@ -40,8 +60,14 @@ articleRouter.post("/article", upload.array("files"), authMiddleware, async (req
   try {
     const userId = req.user;
     const files = req.files;
-    const { articleTitle, articleSubTitle, articleContent, articleType, categoryName } = req.body;
+    const { articleTitle, articleSubTitle,
+      articleContent, articleType, categoryName } = req.body;
 
+    if (!articleTitle || !articleSubTitle || !articleContent ||
+      !articleType || !categoryName
+    ) {
+      return res.status(401).json({ message: "전부 입력해주세요." });
+    }
     ////////////////////////////////////////////////////////////////////////////
 
     // S3에 직접 업로드

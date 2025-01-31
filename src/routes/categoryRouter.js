@@ -15,13 +15,4 @@ categoryRouter.get('/categories', async (req, res) => {
   }
 })
 
-categoryRouter.post('/category', async (req, res) => {
-  try {
-
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ message: "server error" });
-  }
-})
-
 export default categoryRouter;
