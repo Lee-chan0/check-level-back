@@ -41,6 +41,7 @@ articleRouter.get('/videoArticles/:articleId', async (req, res) => {
 
 articleRouter.get('/videoArticles', async (req, res) => {
   try {
+    const { limit } = req.query;
     const findVideos = await prisma.articles.findMany({
       where: { articleType: "동영상" },
       orderBy: {
@@ -59,7 +60,8 @@ articleRouter.get('/videoArticles', async (req, res) => {
             categoryName: true,
           }
         }
-      }
+      },
+      take: limit ? +limit : undefined
     })
 
     return res.status(201).json({ videoArticles: findVideos });
@@ -156,10 +158,32 @@ articleRouter.post("/article", upload.array("files"), authMiddleware, async (req
     const { articleTitle, articleSubTitle,
       articleContent, articleType, categoryName } = req.body;
 
-    if (!articleTitle || !articleSubTitle || !articleContent ||
+    if (!articleTitle || !articleContent ||
       !articleType || !categoryName
     ) {
-      return res.status(401).json({ message: "전부 입력해주세요." });
+      return res.status(401).json({ message: "빈칸없이 기재해주세요." });
+    }
+
+    const getVideoId = (url) => {
+      if (url.includes("youtube.com/shorts/")) {
+        const parts = url.split("/shorts/");
+        return parts[1];
+      } else if (url.includes("v=")) {
+        const queryParams = url.split("?")[1].split("&");
+        for (let param of queryParams) {
+          if (param.startsWith("v=")) {
+            return param.slice(2);
+          }
+        }
+      }
+      return null; // 비디오 ID를 찾지 못한 경우
+    };
+
+    if (articleType === '동영상') {
+      const isTrue = getVideoId(articleContent);
+      if (!isTrue) {
+        return res.status(401).json({ message: "유튜브 링크만 유효합니다." });
+      }
     }
     ////////////////////////////////////////////////////////////////////////////
 
