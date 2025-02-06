@@ -10,8 +10,13 @@ const userRouter = express.Router();
 
 userRouter.post('/signup', async (req, res) => {
   try {
-    const { loginId, password, userNamePosition } = req.body;
+    const { loginId, password, userNamePosition, signUpCode } = req.body;
+    const SIGN_UP_CODE = process.env.CMS_SIGN_UP_CODE;
     if (!loginId || !password || !userNamePosition) return res.status(401).json({ message: "정보를 입력해주세요." });
+
+    if (SIGN_UP_CODE !== signUpCode) {
+      return res.status(401).json({ message: "CMS_CODE가 잘못되었습니다." });
+    }
 
     const existLoginId = await prisma.users.findFirst({
       where: {
