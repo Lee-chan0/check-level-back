@@ -139,7 +139,15 @@ articleRouter.get("/article/:articleId", async (req, res) => {
   try {
     const { articleId } = req.params;
     const findArticle = await prisma.articles.findFirst({
-      where: { articleId: articleId }
+      where: { articleId: +articleId },
+      include: {
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true
+          }
+        }
+      }
     })
     if (!findArticle) return res.status(401).json({ message: "게시물이 존재하지 않습니다." });
 
@@ -150,6 +158,52 @@ articleRouter.get("/article/:articleId", async (req, res) => {
   }
 });
 
+articleRouter.patch("/article/:articleId", upload.none(), authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user;
+    const { articleId } = req.params;
+
+    const { articleTitle, articleSubTitle,
+      articleContent, articleType, categoryName } = req.body;
+
+    if (!articleTitle || !articleContent ||
+      !articleType || !categoryName || !articleSubTitle
+    ) return res.status(401).json({ message: "빈칸없이 기재해주세요." });
+
+    const findUser = await prisma.users.findFirst({ where: { userId: +userId } });
+    if (!findUser) return res.status(401).json({ message: "해당하는 유저가 없습니다." });
+
+    const findArticle = await prisma.articles.findFirst({ where: { articleId: +articleId } });
+    if (!findArticle) return res.status(401).json({ message: "존재하지 않는 기사입니다." });
+
+    const findCategory = await prisma.categories.findFirst({ where: { categoryName: categoryName } });
+    if (!findCategory) {
+      await prisma.categories.create({
+        data: {
+          categoryName: categoryName
+        }
+      })
+    }
+
+    const updateArticle = await prisma.articles.update({
+      where: { articleId: +articleId },
+      data: {
+        articleTitle: articleTitle,
+        articleSubTitle: articleSubTitle,
+        articleContent: articleContent,
+        articleType: articleType,
+        CategoryId: +findCategory.categoryId,
+        UserId: +userId
+      }
+    })
+
+    return res.status(201).json({ updatedArticle: updateArticle });
+
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
 
 articleRouter.post("/article", upload.array("files"), authMiddleware, async (req, res) => {
   try {
@@ -159,7 +213,7 @@ articleRouter.post("/article", upload.array("files"), authMiddleware, async (req
       articleContent, articleType, categoryName } = req.body;
 
     if (!articleTitle || !articleContent ||
-      !articleType || !categoryName
+      !articleType || !categoryName || !articleSubTitle
     ) {
       return res.status(401).json({ message: "빈칸없이 기재해주세요." });
     }
@@ -244,6 +298,14 @@ articleRouter.get('/articles/today', async (req, res) => {
       where: {
         articleType: {
           not: "동영상"
+        }
+      },
+      include: {
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true
+          }
         }
       },
       orderBy: {

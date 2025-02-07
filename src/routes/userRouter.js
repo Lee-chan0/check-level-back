@@ -3,6 +3,7 @@ import prisma from '../utils/prismaClinet.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
 dotenv.config();
 
@@ -66,10 +67,21 @@ userRouter.post('/signin', async (req, res) => {
     const decodedPassword = await bcrypt.compare(password, isExistUser.password);
     if (!decodedPassword) return res.status(403).json({ message: "잘못된 정보입니다." });
 
+
     const token = jwt.sign({ userId: isExistUser.userId }, key, { expiresIn: "3h" });
 
+    const userInfo = await prisma.users.findFirst({
+      where: {
+        loginId: loginId
+      },
+      select: {
+        userId: true,
+        userNamePosition: true
+      }
+    })
+
     return res.status(201).json({
-      message: "로그인에 성공했습니다.",
+      userInfo: userInfo,
       token: token,
     })
   } catch (e) {
@@ -88,6 +100,26 @@ userRouter.get('/users', async (req, res) => {
     });
 
     return res.status(201).json({ users: findUsers });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
+
+userRouter.get('/user', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user;
+    const findUser = await prisma.users.findFirst({
+      where: { userId: +userId },
+      select: {
+        userId: true,
+        userNamePosition: true,
+      }
+    })
+
+    if (!findUser) return res.status(401).json({ message: "해당하는 유저가 없습니다." });
+
+    return res.status(201).json({ userInfo: findUser });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "server error" });
