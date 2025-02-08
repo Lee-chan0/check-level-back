@@ -158,11 +158,40 @@ articleRouter.get("/article/:articleId", async (req, res) => {
   }
 });
 
-articleRouter.patch("/article/:articleId", upload.none(), authMiddleware, async (req, res) => {
+articleRouter.delete("/article/:articleId", authMiddleware, async (req, res) => {
+  try {
+    const { articleId } = req.params;
+    const userId = req.user;
+    console.log(articleId);
+    const findArticle = await prisma.articles.findFirst({
+      where: {
+        articleId: +articleId
+      }
+    });
+    if (!findArticle) return res.status(401).json({ message: "해당하는 기사가 없습니다." });
+
+    const findUser = await prisma.users.findFirst({ where: { userId: +userId } });
+    if (!findUser) return res.status(401).json({ message: "해당하는 유저가 없습니다." });
+
+
+    if (findArticle.UserId !== +userId) return res.status(403).json({ message: "삭제할 수 있는 권한이 없습니다." });
+
+    await prisma.articles.delete({ where: { articleId: +articleId, UserId: +userId } });
+
+    return res.status(200).json({ message: "기사가 삭제되었습니다." });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
+
+articleRouter.patch("/article/:articleId", upload.array("updateFiles"), authMiddleware, async (req, res) => {
   try {
     const userId = req.user;
     const { articleId } = req.params;
+    const files = req.files;
 
+    let { changeIndex } = req.body;
     const { articleTitle, articleSubTitle,
       articleContent, articleType, categoryName } = req.body;
 
@@ -175,6 +204,41 @@ articleRouter.patch("/article/:articleId", upload.none(), authMiddleware, async 
 
     const findArticle = await prisma.articles.findFirst({ where: { articleId: +articleId } });
     if (!findArticle) return res.status(401).json({ message: "존재하지 않는 기사입니다." });
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    const uploadPromises = files.map(async (file) => {
+      const fileExt = path.extname(file.originalname).toLowerCase(); // 확장자 유지
+      const fileKey = `uploads/${Date.now()}_${uuidv4()}${fileExt}`; // ✅ 한글 파일명 제거, 안전한 이름 사용
+
+      const uploadParams = {
+        Bucket: "my-bucket-test",
+        Key: fileKey,
+        Body: file.buffer,
+        ACL: "public-read",
+        ContentType: file.mimetype
+      };
+
+      await s3.send(new PutObjectCommand(uploadParams));
+      return `https://kr.object.ncloudstorage.com/my-bucket-test/${fileKey}`;
+    });
+
+    const uploadUrls = await Promise.all(uploadPromises);
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    if (!Array.isArray(changeIndex)) {
+      changeIndex = [changeIndex];
+    }
+
+    const currentImages = JSON.parse(findArticle.articleImageUrls);
+    let newUploadUrls = uploadUrls.map((item) => item);
+
+    for (let i = 0; i < changeIndex.length; i++) {
+      const idx = +changeIndex[i];
+      currentImages[idx] = uploadUrls[i];
+      newUploadUrls = newUploadUrls.filter((item) => item !== uploadUrls[i]);
+    }
+
+    newUploadUrls.forEach((item) => (currentImages.push(item)));
 
     const findCategory = await prisma.categories.findFirst({ where: { categoryName: categoryName } });
     if (!findCategory) {
@@ -192,6 +256,7 @@ articleRouter.patch("/article/:articleId", upload.none(), authMiddleware, async 
         articleSubTitle: articleSubTitle,
         articleContent: articleContent,
         articleType: articleType,
+        articleImageUrls: JSON.stringify(currentImages),
         CategoryId: +findCategory.categoryId,
         UserId: +userId
       }
