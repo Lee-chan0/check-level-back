@@ -100,9 +100,12 @@ articleRouter.get('/articles/videos', async (req, res) => {
   }
 })
 
-articleRouter.get('/articles', async (req, res) => {
+articleRouter.get('/articles/pageNation', async (req, res) => {
   try {
-    const findAllArticle = await prisma.articles.findMany({
+    const { pageParam, limit } = req.query;
+    const skip = +pageParam * +limit;
+
+    const articles = await prisma.articles.findMany({
       where: {
         articleType: {
           not: "동영상"
@@ -124,9 +127,22 @@ articleRouter.get('/articles', async (req, res) => {
             categoryName: true,
           }
         }
+      },
+      take: +limit,
+      skip: skip
+    });
+
+    const totalArticleCount = await prisma.articles.count({
+      where: {
+        articleType: {
+          not: '동영상'
+        }
       }
     });
-    return res.status(201).json({ articles: findAllArticle });
+
+    const hasMore = +skip + articles.length < totalArticleCount;
+
+    return res.status(201).json({ articles: articles, hasMore });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "server error" });
@@ -134,6 +150,39 @@ articleRouter.get('/articles', async (req, res) => {
 })
 
 
+articleRouter.get('/articles', async (req, res) => {
+  try {
+    const articles = await prisma.articles.findMany({
+      where: {
+        articleType: {
+          not: "동영상"
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        User: {
+          select: {
+            userId: true,
+            userNamePosition: true
+          }
+        },
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true,
+          }
+        }
+      },
+    });
+
+    return res.status(201).json({ articles: articles });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
 
 articleRouter.get("/article/:articleId", async (req, res) => {
   try {
@@ -162,7 +211,6 @@ articleRouter.delete("/article/:articleId", authMiddleware, async (req, res) => 
   try {
     const { articleId } = req.params;
     const userId = req.user;
-    console.log(articleId);
     const findArticle = await prisma.articles.findFirst({
       where: {
         articleId: +articleId
@@ -195,15 +243,64 @@ articleRouter.patch("/article/:articleId", upload.array("updateFiles"), authMidd
     const { articleTitle, articleSubTitle,
       articleContent, articleType, categoryName } = req.body;
 
-    if (!articleTitle || !articleContent ||
-      !articleType || !categoryName || !articleSubTitle
-    ) return res.status(401).json({ message: "빈칸없이 기재해주세요." });
+    if (articleType !== '동영상') {
+      if (!articleTitle || !articleContent ||
+        !articleType || !categoryName || !articleSubTitle
+      ) return res.status(401).json({ message: "빈칸없이 기재해주세요." });
+    }
+
 
     const findUser = await prisma.users.findFirst({ where: { userId: +userId } });
     if (!findUser) return res.status(401).json({ message: "해당하는 유저가 없습니다." });
 
     const findArticle = await prisma.articles.findFirst({ where: { articleId: +articleId } });
     if (!findArticle) return res.status(401).json({ message: "존재하지 않는 기사입니다." });
+
+    const findCategory = await prisma.categories.findFirst({ where: { categoryName: categoryName } });
+    if (!findCategory) {
+      await prisma.categories.create({
+        data: {
+          categoryName: categoryName
+        }
+      })
+    }
+
+    const getVideoId = (url) => {
+      if (url.includes("youtube.com/shorts/")) {
+        const parts = url.split("/shorts/");
+        return parts[1];
+      } else if (url.includes("v=")) {
+        const queryParams = url.split("?")[1].split("&");
+        for (let param of queryParams) {
+          if (param.startsWith("v=")) {
+            return param.slice(2);
+          }
+        }
+      }
+      return null; // 비디오 ID를 찾지 못한 경우
+    };
+
+    if (articleType === '동영상') {
+      const isTrue = getVideoId(articleContent);
+      if (!isTrue) {
+        return res.status(401).json({ message: "유튜브 링크만 유효합니다." });
+      }
+    }
+
+    if (articleType === '동영상') {
+
+      await prisma.articles.update({
+        where: { articleId: +articleId },
+        data: {
+          articleTitle: articleTitle,
+          articleContent: articleContent,
+          CategoryId: findCategory.categoryId,
+          UserId: userId
+        }
+      })
+
+      return res.status(201).json({ message: "수정이 완료되었습니다." });
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     const uploadPromises = files.map(async (file) => {
@@ -239,15 +336,6 @@ articleRouter.patch("/article/:articleId", upload.array("updateFiles"), authMidd
     }
 
     newUploadUrls.forEach((item) => (currentImages.push(item)));
-
-    const findCategory = await prisma.categories.findFirst({ where: { categoryName: categoryName } });
-    if (!findCategory) {
-      await prisma.categories.create({
-        data: {
-          categoryName: categoryName
-        }
-      })
-    }
 
     const updateArticle = await prisma.articles.update({
       where: { articleId: +articleId },
@@ -406,6 +494,110 @@ articleRouter.get('/articles/top', async (req, res) => {
     if (!findTopArticles) return res.status(401).json({ message: "no result" });
 
     return res.status(201).json({ topArticles: findTopArticles });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
+
+articleRouter.patch('/important/article', authMiddleware, async (req, res) => {
+  try {
+    const { articleId, isActiveStar } = req.body;
+
+
+    const findArticle = await prisma.articles.findFirst({ where: { articleId: +articleId } });
+    if (!findArticle) return res.status(401).json({ message: "존재하지 않는 기사입니다." });
+
+    if (isActiveStar === true) {
+      const updateImportantStar = await prisma.articles.update({
+        where: { articleId: +articleId },
+        data: {
+          isImportant: true
+        }
+      })
+
+      return res.status(201).json({ updateStar: updateImportantStar })
+    } else {
+      const updateImportantStar = await prisma.articles.update({
+        where: { articleId: +articleId },
+        data: {
+          isImportant: false
+        }
+      })
+
+      return res.status(201).json({ updateStar: updateImportantStar })
+    }
+
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
+
+articleRouter.get('/important/articles', authMiddleware, async (req, res) => {
+  try {
+    const findImportantArticles = await prisma.articles.findMany({
+      where: {
+        isImportant: {
+          not: false
+        }
+      }, orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        User: {
+          select: {
+            userId: true,
+            userNamePosition: true,
+          }
+        },
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true
+          }
+        }
+      }
+    })
+
+    return res.status(201).json({ importantArticles: findImportantArticles })
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
+
+articleRouter.get('/myArticles', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user;
+
+    const findMyArticles = await prisma.articles.findMany({
+      where:
+      {
+        UserId: +userId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        User: {
+          select: {
+            userId: true,
+            userNamePosition: true
+          }
+        },
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true,
+          }
+        }
+      }
+    });
+
+    if (!findMyArticles) return res.status(401).json({ message: "작성한 기사가 존재하지 않습니다." });
+
+    return res.status(201).json({ findMyArticles: findMyArticles });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "server error" });
