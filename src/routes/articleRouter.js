@@ -39,9 +39,65 @@ articleRouter.get('/videoArticles/:articleId', async (req, res) => {
   }
 })
 
+articleRouter.get('/articles/category-list/:categoryId', async (req, res) => {
+  try {
+    const { pageParam, limit } = req.query;
+    const { categoryId } = req.params;
+    const skip = +pageParam * +limit;
+
+    const findManyArticles = await prisma.articles.findMany({
+      where: {
+        articleType: {
+          not: '동영상'
+        },
+        Category: {
+          categoryId: +categoryId
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        User: {
+          select: {
+            userId: true,
+            userNamePosition: true,
+          }
+        },
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true
+          }
+        }
+      },
+      skip: skip,
+      take: +limit
+    });
+
+    const totalArticleCount = await prisma.articles.count({
+      where: {
+        articleType: {
+          not: "동영상"
+        },
+        Category: {
+          categoryId: +categoryId
+        }
+      }
+    })
+
+    const hasMore = totalArticleCount > skip + findManyArticles.length;
+
+    return res.status(201).json({ articles: findManyArticles, hasMore });
+
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
+
 articleRouter.get('/videoArticles', async (req, res) => {
   try {
-    const { limit } = req.query;
     const findVideos = await prisma.articles.findMany({
       where: { articleType: "동영상" },
       orderBy: {
@@ -61,7 +117,6 @@ articleRouter.get('/videoArticles', async (req, res) => {
           }
         }
       },
-      take: limit ? +limit : undefined
     })
 
     return res.status(201).json({ videoArticles: findVideos });
@@ -143,6 +198,48 @@ articleRouter.get('/articles/pageNation', async (req, res) => {
     const hasMore = +skip + articles.length < totalArticleCount;
 
     return res.status(201).json({ articles: articles, hasMore });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "server error" });
+  }
+})
+
+articleRouter.get('/articles/page-videos', async (req, res) => {
+  try {
+    const { pageParam, limit } = req.query;
+    const skip = +pageParam * +limit;
+
+    const findPageVideos = await prisma.articles.findMany({
+      where: {
+        articleType: {
+          equals: '동영상',
+        }
+      },
+      include: {
+        User: {
+          select: {
+            userId: true,
+            userNamePosition: true,
+          }
+        },
+        Category: {
+          select: {
+            categoryId: true,
+            categoryName: true,
+          }
+        }
+      },
+      take: +limit,
+      skip: skip
+    });
+
+    if (!findPageVideos) return res.status(401).json({ message: "동영상이 존재하지 않습니다." });
+
+    const totalCount = await prisma.articles.count({ where: { articleType: '동영상' } });
+
+    const hasMore = totalCount > findPageVideos.length + skip;
+
+    return res.status(201).json({ videoArticles: findPageVideos, hasMore });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "server error" });
